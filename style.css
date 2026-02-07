@@ -515,3 +515,71 @@ input[type="range"]::-webkit-slider-thumb:hover { background-color: #FFD64D; }
     transform: rotate(90deg);
 }
 
+/* ================================================================ */
+/* ============= GAYA BARU V5.6 (LAST READ & BOOK TITLE) ========== */
+/* ================================================================ */
+ 
+.vocab-item.last-read {
+   /* Memberikan highlight halus menggunakan tint warna biru link */
+   background-color: rgba(0, 87, 184, 0.15); 
+   /* Border accent halus di kiri */
+   border-left: 3px solid #FFC300; 
+   /* Sedikit padding ekstra agar tidak terlalu rapat */
+   padding-top: 1rem; 
+}
+ 
+.last-read-badge {
+   display: inline-block;
+   /* Menggunakan warna accent kuning dengan transparansi agar tidak terlalu 'ngejreng' */
+   background-color: rgba(255, 195, 0, 0.9);
+   color: #020617; /* Teks gelap untuk kontras */
+   font-size: 0.65rem;
+   font-weight: 700;
+   padding: 3px 8px;
+   border-radius: 12px; /* Radius lebih bulat */
+   margin-bottom: 0.75rem;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Sedikit dimensi */
+}
+ 
+.vocab-item-book {
+   font-size: 0.7rem;
+   color: #9ca3af; /* Warna teks muted yang sudah ada */
+   font-weight: 500;
+   text-transform: uppercase;
+   letter-spacing: 0.5px;
+   margin-bottom: 0.35rem;
+   display: flex;
+   align-items: center;
+}
+ 
+/* Menambahkan ikon buku kecil menggunakan CSS pseudo-element */
+.vocab-item-book::before {
+   content: '\1F4D6'; /* Unicode Ikon Buku Terbuka */
+   font-size: 0.8rem;
+   margin-right: 6px;
+   opacity: 0.7;
+   filter: grayscale(100%); /* Agar ikon warnanya netral mengikuti teks */
+}
+ 
+.vocab-divider {
+   font-size: 0.7rem;
+   color: #64748b;
+   text-transform: uppercase;
+   letter-spacing: 1.2px;
+   font-weight: 700;
+   /* Menggunakan flex untuk membuat garis di samping teks */
+   display: flex;
+   align-items: center;
+   margin: 2rem 0 1rem 0; /* Margin lebih lega */
+}
+ 
+/* Garis pemisah setelah teks "TERSIMPAN MANUAL" */
+.vocab-divider::after {
+   content: '';
+   flex-grow: 1;
+   height: 1px;
+   background: rgba(100, 116, 139, 0.3); /* Warna garis halus */
+   margin-left: 12px;
+}
