@@ -25569,21 +25569,13 @@ document.addEventListener('DOMContentLoaded', function() {
         {
             title: "Artikel Sekunder 1.2",
             type: 'sub-article',
-            original: [
-            
-            ],
-            translation: [
-            
-            ]
+            original: [],
+            translation: []
         },
         {
             title: "Artikel Utama Kedua",
-            original: [
-            
-            ],
-            translation: [
-            
-            ]
+            original: [],
+            translation: []
         }
 
     */
@@ -25611,10 +25603,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // ================ INISIALISASI & STATE MANAGEMENT ===============
     // ================================================================
     const savedFontSize = localStorage.getItem('fontSize') || '3';
-    const savedActiveArticles = JSON.parse(localStorage.getItem('activeArticles')) || [];
-    let vocabulary = JSON.parse(localStorage.getItem('vocabulary')) || [];
-
-    let currentScale = 1;
+     const savedActiveArticles = JSON.parse(localStorage.getItem('activeArticles')) || [];
+   const currentBookTitle = document.querySelector('h1') ? document.querySelector('h1').innerText.trim() : 'Unknown Book';
+   let lastRead = JSON.parse(localStorage.getItem('lastRead')) || null;
+     let vocabulary = JSON.parse(localStorage.getItem('vocabulary')) || [];
+ 
+     let currentScale = 1;
     let translateX = 0;
     let translateY = 0;
     let isPanning = false;
@@ -25784,12 +25778,36 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof translationSegment === 'object') translationSegment = translationSegment.text;
 
         if (!translationSegment) { hidePopup(); return; }
-
-        const isAlreadyAdded = vocabulary.some(item => item.original === originalSegment);
-        const addedClass = isAlreadyAdded ? 'added' : '';
-        const buttonText = isAlreadyAdded ? '✔' : '+';
-
-        popup.innerHTML = `
+ 
+       // --- LOGIKA UPDATE V5.6: LAST READ & SAFETY NET ---
+       
+       // 1. Safety Net: Pindahkan lastRead lama ke vocabulary jika buku berbeda
+       if (lastRead && lastRead.bookTitle !== currentBookTitle) {
+           // Cek duplikasi sebelum memindahkan ke manual
+           const isDuplicate = vocabulary.some(item => item.original === lastRead.original);
+           if (!isDuplicate) {
+               vocabulary.unshift(lastRead);
+               localStorage.setItem('vocabulary', JSON.stringify(vocabulary));
+           }
+       }
+ 
+       // 2. Update Last Read dengan data segmen saat ini
+       lastRead = {
+           original: originalSegment,
+           translation: translationSegment,
+           title: articlesData[articleIndex].title,
+           bookTitle: currentBookTitle,
+           articleIndex: articleIndex,
+           segmentIndex: segmentIndex
+       };
+       localStorage.setItem('lastRead', JSON.stringify(lastRead));
+       renderVocabulary(); // Refresh sidebar untuk menampilkan Last Read baru
+ 
+         const isAlreadyAdded = vocabulary.some(item => item.original === originalSegment);
+         const addedClass = isAlreadyAdded ? 'added' : '';
+         const buttonText = isAlreadyAdded ? '✔' : '+';
+ 
+         popup.innerHTML = `
             <span>${translationSegment}</span>
             <button class="add-vocab-btn ${addedClass}" title="Tambah/Hapus Bookmark" data-original="${originalSegment}" data-translation="${translationSegment}" data-article-index="${articleIndex}" data-segment-index="${segmentIndex}">
                 ${buttonText}
@@ -25811,24 +25829,48 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function renderVocabulary() {
         vocabList.innerHTML = ''; 
-        if (vocabulary.length === 0) {
-            vocabList.innerHTML = '<li class="empty-vocab-message">Belum ada bookmark.</li>';
-            return;
-        }
+       
+       // Render Last Read (Jika Ada)
+       if (lastRead) {
+           const liLast = document.createElement('li');
+           liLast.className = 'vocab-item last-read';
+           liLast.dataset.articleIndex = lastRead.articleIndex;
+           liLast.dataset.segmentIndex = lastRead.segmentIndex;
+           liLast.innerHTML = `
+               <div class="last-read-badge">Terakhir Dibaca</div>
+               <div class="vocab-item-book">${lastRead.bookTitle}</div>
+               <div class="vocab-item-original">${lastRead.original}</div>
+               <div class="vocab-item-translation">${lastRead.translation}</div>
+               <div class="vocab-item-source">Bab: ${lastRead.title}</div>
+           `;
+           vocabList.appendChild(liLast);
+       }
+ 
+       // Render Divider & Manual List
+       if (vocabulary.length > 0) {
+           const divider = document.createElement('div');
+           divider.className = 'vocab-divider';
+           divider.textContent = 'TERSIMPAN MANUAL';
+           vocabList.appendChild(divider);
+       } else if (!lastRead) {
+             vocabList.innerHTML = '<li class="empty-vocab-message">Belum ada bookmark.</li>';
+             return;
+         }
 
         vocabulary.forEach((item, index) => {
             const listItem = document.createElement('li');
             listItem.className = 'vocab-item';
             listItem.dataset.articleIndex = item.articleIndex;
             listItem.dataset.vocabIndex = index;
-            listItem.dataset.segmentIndex = item.segmentIndex;
-            listItem.innerHTML = `
-                <div class="vocab-item-original">${item.original}</div>
-                <div class="vocab-item-translation">${item.translation}</div>
-                <div class="vocab-item-source">Sumber: ${item.title}</div>
-                <button class="delete-vocab-btn" title="Hapus Bookmark">&times;</button>
-            `;
-            vocabList.appendChild(listItem);
+             listItem.dataset.segmentIndex = item.segmentIndex;
+             listItem.innerHTML = `
+               <div class="vocab-item-book">${item.bookTitle || 'Unknown Book'}</div>
+                 <div class="vocab-item-original">${item.original}</div>
+                 <div class="vocab-item-translation">${item.translation}</div>
+               <div class="vocab-item-source">Bab: ${item.title}</div>
+                 <button class="delete-vocab-btn" title="Hapus Bookmark">&times;</button>
+             `;
+             vocabList.appendChild(listItem);
         });
     }
 
@@ -25837,12 +25879,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         vocabulary.unshift({
-            original: original,
-            translation: translation,
-            title: articlesData[articleIndex].title,
-            articleIndex: articleIndex,
-            segmentIndex: segmentIndex
-        });
+             original: original,
+             translation: translation,
+             title: articlesData[articleIndex].title,
+           bookTitles: currentBookTitle, // Tambahkan Judul Buku
+             articleIndex: articleIndex,
+             segmentIndex: segmentIndex
+         });
         localStorage.setItem('vocabulary', JSON.stringify(vocabulary));
         renderVocabulary();
     }
