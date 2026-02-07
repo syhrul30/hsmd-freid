@@ -25780,10 +25780,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!translationSegment) { hidePopup(); return; }
  
        // --- LOGIKA UPDATE V5.6: LAST READ & SAFETY NET ---
-       
-       // 1. Safety Net: Pindahkan lastRead lama ke vocabulary jika buku berbeda
        if (lastRead && lastRead.bookTitle !== currentBookTitle) {
-           // Cek duplikasi sebelum memindahkan ke manual
            const isDuplicate = vocabulary.some(item => item.original === lastRead.original);
            if (!isDuplicate) {
                vocabulary.unshift(lastRead);
@@ -25791,7 +25788,6 @@ document.addEventListener('DOMContentLoaded', function() {
            }
        }
  
-       // 2. Update Last Read dengan data segmen saat ini
        lastRead = {
            original: originalSegment,
            translation: translationSegment,
@@ -25801,7 +25797,7 @@ document.addEventListener('DOMContentLoaded', function() {
            segmentIndex: segmentIndex
        };
        localStorage.setItem('lastRead', JSON.stringify(lastRead));
-       renderVocabulary(); // Refresh sidebar untuk menampilkan Last Read baru
+       renderVocabulary();
  
          const isAlreadyAdded = vocabulary.some(item => item.original === originalSegment);
          const addedClass = isAlreadyAdded ? 'added' : '';
@@ -25828,7 +25824,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function renderVocabulary() {
-        vocabList.innerHTML = ''; 
+         vocabList.innerHTML = ''; 
        
        // Render Last Read (Jika Ada)
        if (lastRead) {
@@ -25836,6 +25832,7 @@ document.addEventListener('DOMContentLoaded', function() {
            liLast.className = 'vocab-item last-read';
            liLast.dataset.articleIndex = lastRead.articleIndex;
            liLast.dataset.segmentIndex = lastRead.segmentIndex;
+           liLast.dataset.bookTitle = lastRead.bookTitle; // PENTING: Simpan judul buku di elemen
            liLast.innerHTML = `
                <div class="last-read-badge">Terakhir Dibaca</div>
                <div class="vocab-item-book">${lastRead.bookTitle}</div>
@@ -25856,13 +25853,14 @@ document.addEventListener('DOMContentLoaded', function() {
              vocabList.innerHTML = '<li class="empty-vocab-message">Belum ada bookmark.</li>';
              return;
          }
-
-        vocabulary.forEach((item, index) => {
-            const listItem = document.createElement('li');
-            listItem.className = 'vocab-item';
-            listItem.dataset.articleIndex = item.articleIndex;
-            listItem.dataset.vocabIndex = index;
+ 
+         vocabulary.forEach((item, index) => {
+             const listItem = document.createElement('li');
+             listItem.className = 'vocab-item';
+             listItem.dataset.articleIndex = item.articleIndex;
+             listItem.dataset.vocabIndex = index;
              listItem.dataset.segmentIndex = item.segmentIndex;
+           listItem.dataset.bookTitle = item.bookTitle; // PENTING: Simpan judul buku di elemen
              listItem.innerHTML = `
                <div class="vocab-item-book">${item.bookTitle || 'Unknown Book'}</div>
                  <div class="vocab-item-original">${item.original}</div>
@@ -25882,7 +25880,7 @@ document.addEventListener('DOMContentLoaded', function() {
              original: original,
              translation: translation,
              title: articlesData[articleIndex].title,
-           bookTitles: currentBookTitle, // Tambahkan Judul Buku
+           bookTitle: currentBookTitle, // Tambahkan Judul Buku saat save manual
              articleIndex: articleIndex,
              segmentIndex: segmentIndex
          });
@@ -25956,11 +25954,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const vocabIndex = parseInt(vocabItem.dataset.vocabIndex);
             vocabulary.splice(vocabIndex, 1);
             localStorage.setItem('vocabulary', JSON.stringify(vocabulary));
-            renderVocabulary();
-        } else {
-            const articleIndex = vocabItem.dataset.articleIndex;
-            const segmentIndex = vocabItem.dataset.segmentIndex;
-            const targetArticle = document.querySelector(`.article-container[data-article-index="${articleIndex}"]`);
+             renderVocabulary();
+         } else {
+           // --- LOGIKA POPUP BEDA BUKU ---
+           const targetBookTitle = vocabItem.dataset.bookTitle;
+           if (targetBookTitle && targetBookTitle !== currentBookTitle) {
+               alert(`⚠️ PINDAH BUKU DIPERLUKAN\n\nBookmark ini berada di buku: "${targetBookTitle}".\n\nSilakan buka halaman buku tersebut untuk mengaksesnya.`);
+               return; // Hentikan eksekusi agar tidak mencoba scroll
+           }
+ 
+             const articleIndex = vocabItem.dataset.articleIndex;
+             const segmentIndex = vocabItem.dataset.segmentIndex;
+             const targetArticle = document.querySelector(`.article-container[data-article-index="${articleIndex}"]`);
 
             if (targetArticle) {
                 if (!targetArticle.classList.contains('active')) {
